@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Enhanced Sensor Data Quality Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">AI-Enhanced Sensor Data Quality</h1>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Overall Data Quality Score</div>
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-light mx-auto" style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center;">
+                            <h3 class="text-primary" id="quality-score">Loading...</h3>
+                        </div>
+                        <p>This score represents the overall quality of sensor data.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Data Quality Analysis</div>
+                    <div class="card-body">
+                        <canvas id="qualityChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Live Sensor Data</div>
+                    <div class="card-body">
+                        <table class="table table-striped" id="sensor-table">
+                            <thead>
+                                <tr>
+                                    <th>Sensor ID</th>
+                                    <th>Reading</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Live data will be appended here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Quick Actions</div>
+                    <div class="card-body">
+                        <button class="btn btn-warning mb-2 w-100" onclick="filterNoise()">Filter Noise</button>
+                        <button class="btn btn-danger mb-2 w-100" onclick="detectAnomalies()">Detect Anomalies</button>
+                        <button class="btn btn-primary w-100" onclick="exportReport()">Export Report</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let sensorData = [];
+
+        function generateSensorData() {
+            const sensors = 10; 
+            sensorData = [];
+
+            for (let i = 1; i <= sensors; i++) {
+                let reading = (Math.random() * 100).toFixed(2);
+                let status = determineStatus(reading);
+                sensorData.push({ id: `Sensor-${i}`, reading, status });
+            }
+        }
+
+        function determineStatus(value) {
+            if (value < 30) return 'Anomalous';
+            if (value < 60) return 'Noisy';
+            return 'Normal';
+        }
+
+        function fetchSensorData() {
+            generateSensorData();
+            updateTable();
+            updateQualityScore();
+            updateChart();
+        }
+
+        function updateTable() {
+            const tableBody = document.querySelector('#sensor-table tbody');
+            tableBody.innerHTML = '';
+
+            sensorData.forEach(sensor => {
+                const row = `
+                    <tr>
+                        <td>${sensor.id}</td>
+                        <td>${sensor.reading}</td>
+                        <td class="${sensor.status === 'Anomalous' ? 'text-danger' : sensor.status === 'Noisy' ? 'text-warning' : 'text-success'}">
+                            ${sensor.status}
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function updateQualityScore() {
+            let normalCount = sensorData.filter(s => s.status === 'Normal').length;
+            let qualityScore = ((normalCount / sensorData.length) * 100).toFixed(1);
+            document.getElementById('quality-score').innerText = qualityScore + '%';
+        }
+
+        function updateChart() {
+            const highQuality = sensorData.filter(s => s.status === 'Normal').length;
+            const noisy = sensorData.filter(s => s.status === 'Noisy').length;
+            const anomalous = sensorData.filter(s => s.status === 'Anomalous').length;
+
+            qualityChart.data.datasets[0].data = [highQuality, noisy, anomalous];
+            qualityChart.update();
+        }
+
+        let qualityChart;
+        function createQualityChart() {
+            const ctx = document.getElementById('qualityChart').getContext('2d');
+            qualityChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High Quality', 'Noisy', 'Anomalous'],
+                    datasets: [{
+                        data: [0, 0, 0], 
+                        backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function filterNoise() {
+            alert('Noise filtering applied!');
+        }
+        
+        function detectAnomalies() {
+            alert('Anomaly detection in progress!');
+        }
+        
+        function exportReport() {
+            let csvContent = "Sensor ID,Reading,Status\n";
+            sensorData.forEach(sensor => {
+                csvContent += `${sensor.id},${sensor.reading},${sensor.status}\n`;
+            });
+
+            let blob = new Blob([csvContent], { type: 'text/csv' });
+            let link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'sensor_report.csv';
+            link.click();
+        }
+
+        function initDashboard() {
+            createQualityChart();
+            fetchSensorData();
+            setInterval(fetchSensorData, 5000);
+        }
+
+        initDashboard();
+    </script>
+</body>
+</html>
